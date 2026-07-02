@@ -12,6 +12,9 @@ class GameGrid extends StatelessWidget {
   final int? hoverRow;
   final int? hoverCol;
   final bool canPlaceHover;
+  final Animation<double>? clearAnimation;
+  final Set<int> clearingRows;
+  final Set<int> clearingCols;
 
   const GameGrid({
     super.key,
@@ -21,6 +24,9 @@ class GameGrid extends StatelessWidget {
     this.hoverRow,
     this.hoverCol,
     this.canPlaceHover = false,
+    this.clearAnimation,
+    this.clearingRows = const {},
+    this.clearingCols = const {},
   });
 
   @override
@@ -48,13 +54,33 @@ class GameGrid extends StatelessWidget {
               final cell = gameState.grid[row][col];
               final isHover = _isHoverCell(row, col);
               final isInvalid = isHover && !canPlaceHover;
+              final isClearing = clearingRows.contains(row) ||
+                  clearingCols.contains(col);
 
-              return BlockCell(
+              Widget cellWidget = BlockCell(
                 size: cellSize,
                 color: cell.color,
                 isHighlight: isHover && canPlaceHover && cell.isEmpty,
                 isInvalid: isInvalid && cell.isEmpty,
               );
+
+              if (isClearing && clearAnimation != null) {
+                cellWidget = AnimatedBuilder(
+                  animation: clearAnimation!,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: 1.0 + 0.15 * (1.0 - clearAnimation!.value),
+                      child: Opacity(
+                        opacity: 0.3 + 0.7 * clearAnimation!.value,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: cellWidget,
+                );
+              }
+
+              return cellWidget;
             }),
           );
         }),

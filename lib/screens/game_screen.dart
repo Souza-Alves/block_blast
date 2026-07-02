@@ -25,6 +25,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _scorePopController;
   int _lastPointsEarned = 0;
   bool _gameOverDialogShown = false;
+  Set<int> _clearingRows = {};
+  Set<int> _clearingCols = {};
 
   final GlobalKey _gridKey = GlobalKey();
 
@@ -33,8 +35,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.initState();
     _clearAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
     );
+    _clearAnimController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _clearingRows = {};
+          _clearingCols = {};
+        });
+      }
+    });
     _scorePopController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -83,7 +93,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final col = ((localPos.dx - padding) / totalCellSize).floor();
     final row = ((localPos.dy - padding) / totalCellSize).floor();
 
-    final adjustedRow = row - (_draggingPiece!.height ~/ 2) - 2;
+    final feedbackOffsetY = (_draggingPiece!.height * cellSize + 40) / totalCellSize;
+    final adjustedRow = row - feedbackOffsetY.round();
     final adjustedCol = col - (_draggingPiece!.width ~/ 2);
 
     setState(() {
@@ -101,6 +112,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (result.placed) {
       if (result.totalCleared > 0) {
+        _clearingRows = result.clearedRows.toSet();
+        _clearingCols = result.clearedCols.toSet();
         _clearAnimController.forward(from: 0);
         _lastPointsEarned = result.pointsEarned;
         _scorePopController.forward(from: 0);
@@ -305,6 +318,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                             hoverRow: _hoverRow,
                             hoverCol: _hoverCol,
                             canPlaceHover: _canPlaceHover,
+                            clearAnimation: _clearAnimController,
+                            clearingRows: _clearingRows,
+                            clearingCols: _clearingCols,
                           );
                         },
                       ),
